@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+crewai
+pydantic
+requests
+python-multipart
+python-dotenv
+aiofiles
+httpx
+firebase-admin
+python-dotenv
+transformers
+torch

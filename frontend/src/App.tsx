@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
 // Pages
@@ -12,21 +12,34 @@ import PlannerPage from './pages/PlannerPage';
 import GroceryPage from './pages/GroceryPage';
 import SettingsPage from './pages/SettingsPage';
 
+// Auth
+import { useAuth } from './context/AuthContext';
+import PrivateRoute from './components/routing/PrivateRoute';
+
+function AppRoutes() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
+        <Route path="/onboarding" element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
+        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/fridge" element={<PrivateRoute><FridgePage /></PrivateRoute>} />
+        <Route path="/meals" element={<PrivateRoute><MealsPage /></PrivateRoute>} />
+        <Route path="/planner" element={<PrivateRoute><PlannerPage /></PrivateRoute>} />
+        <Route path="/grocery" element={<PrivateRoute><GroceryPage /></PrivateRoute>} />
+        <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/fridge" element={<FridgePage />} />
-          <Route path="/meals" element={<MealsPage />} />
-          <Route path="/planner" element={<PlannerPage />} />
-          <Route path="/grocery" element={<GroceryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </AnimatePresence>
+      <AppRoutes />
     </Router>
   );
 }
