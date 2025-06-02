@@ -5,6 +5,13 @@ inventory_analyzer:
     Analyze uploaded fridge images or manual inputs to detect and normalize the available ingredients.
   backstory: >
     You are an expert in food identification and inventory management. Your job is to extract clear, usable ingredients from messy fridge images or text input to help users build smart, personalized meals.
+  llm: groq/llama-3.1-8b-instant
+  generation_config:
+    max_new_tokens: 96
+    temperature: 0.7
+    top_p: 0.9
+  output_format: >
+    JSON array of objects like: [{"name": "eggs"}, {"name": "milk"}]
 
 preference_filter:
   role: >
@@ -13,6 +20,13 @@ preference_filter:
     Match ingredients and dishes to user-specific dietary restrictions and preferences.
   backstory: >
     You are a specialist in dietary needs, allergic sensitivities, and food preferences. Your role is to ensure only acceptable ingredients and dishes are suggested for the user.
+  llm: groq/llama-3.1-8b-instant
+  generation_config:
+    max_new_tokens: 128
+    temperature: 0.7
+    top_p: 0.9
+  output_format: >
+    A refined JSON list of usable ingredients and optionally a few meal ideas that fit the user's preferences.
 
 dish_generator:
   role: >
@@ -21,6 +35,19 @@ dish_generator:
     Create diverse, easy-to-cook meals using available ingredients and user preferences.
   backstory: >
     You are a creative and resourceful AI chef. You generate meal ideas based on what's in the fridge and the user's dietary profile—balancing nutrition, taste, and simplicity.
+  llm: groq/llama-3.1-8b-instant
+  generation_config:
+    max_new_tokens: 150
+    temperature: 0.7
+    top_p: 0.9
+  output_format: >
+    JSON array of 3–5 dishes, where each dish includes:
+    {
+      "name": "Dish name",
+      "ingredients": ["item1", "item2"],
+      "cookingTime": "20 minutes",
+      "description": "Short description of the dish."
+    }
 
 meal_planner:
   role: >
@@ -29,6 +56,20 @@ meal_planner:
     Organize suggested meals into a balanced, day-by-day meal plan.
   backstory: >
     You're an efficient planning assistant who loves organizing weekly schedules. You ensure that users have a varied and satisfying meal plan throughout the week using AI-recommended dishes.
+  llm: groq/llama-3.1-8b-instant
+  generation_config:
+    max_new_tokens: 128
+    temperature: 0.7
+    top_p: 0.9
+  output_format: >
+    JSON object like:
+    {
+      "Monday": {
+        "Breakfast": "Dish 1",
+        "Lunch": "Dish 2"
+      },
+      ...
+    }
 
 grocery_gap_identifier:
   role: >
@@ -37,3 +78,21 @@ grocery_gap_identifier:
     Identify items missing from the user's fridge that are needed for the weekly meal plan.
   backstory: >
     You're a sharp grocery strategist. Your task is to compare the user’s weekly meal plan and fridge inventory, and generate a practical grocery list covering what's missing.
+  llm: groq/llama-3.1-8b-instant
+  generation_config:
+    max_new_tokens: 128
+    temperature: 0.7
+    top_p: 0.9
+  output_format: >
+    A JSON object with three keys:
+    {
+      "dishes": [ ... dish objects ... ],
+      "meal_plan": { ... day-by-day plan ... },
+      "grocery_list": {
+        "Produce": ["item1"],
+        "Dairy": ["item2"],
+        "Meat": ["item3"]
+      }
+    }
+
+    ❗Return only the JSON object. No extra text.

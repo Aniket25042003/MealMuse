@@ -13,10 +13,21 @@ async def generate_meals(
     inventory: IngredientList,
     preferences: UserPreferences
 ):
-    result = run_mealmuse_crew(inventory=inventory, preferences=preferences)
+    try:
+        result = run_mealmuse_crew(inventory=inventory, preferences=preferences)
 
-    return {
-        "dishes": result["dishes"],
-        "meal_plan": result["meal_plan"],
-        "grocery_list": result["grocery_list"]
-    }
+        # If result is not a dict with all keys, extract safely
+        dishes = result.get("dishes") if isinstance(result, dict) else result if isinstance(result, list) else []
+        meal_plan = result.get("meal_plan", {}) if isinstance(result, dict) else {}
+        grocery_list = result.get("grocery_list", []) if isinstance(result, dict) else []
+
+        return {
+            "dishes": dishes,
+            "meal_plan": meal_plan,
+            "grocery_list": grocery_list
+        }
+    except Exception as e:
+        return {
+            "error": f"Meal generation failed: {str(e)}"
+        }
+

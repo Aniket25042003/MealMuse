@@ -2,7 +2,7 @@ analyze_inventory_task:
   description: >
     Analyze the uploaded fridge photo or manual input to detect and normalize the current available ingredients.
   expected_output: >
-    A clean, structured list of available ingredients.
+    A clean, structured list of available ingredients (e.g., [{"name": "eggs"}, {"name": "milk"}]).
   agent: inventory_analyzer
 
 filter_preferences_task:
@@ -14,21 +14,71 @@ filter_preferences_task:
 
 generate_dishes_task:
   description: >
-    Using the filtered ingredients and preferences, generate 3-5 diverse, simple dishes including title, prep time, description, and ingredients used.
+    Using the filtered ingredients and preferences, generate 3–5 diverse, simple dishes.
+    The dishes **must strictly follow the user's dietary restrictions** (e.g., vegetarian), avoiding any prohibited ingredients.
+    Example:
+    Each dish should include:
+    - name (string)
+    - ingredients (list of strings)
+    - cookingTime (string)
+    - description (string)
+
+    Return your response as a JSON array of dishes.
   expected_output: >
-    A list of 3-5 structured dish suggestions in JSON format with name, ingredients used, estimated cooking time, and description.
+    A JSON array of dish suggestions like:
+    [
+      {
+        "name": "Omelette",
+        "ingredients": ["eggs", "cheese"],
+        "cookingTime": "10 minutes",
+        "description": "A quick, fluffy omelette with cheese."
+      }
+    ]
   agent: dish_generator
 
 plan_meals_task:
   description: >
-    Distribute the suggested meals into a 7-day meal calendar, ensuring variety and nutrition balance.
+    Distribute the suggested meals into a 7-day meal calendar, ensuring variety and nutritional balance.
+    Include meal times: breakfast, lunch, and dinner where appropriate.
+
+    Return your response as a JSON object with structure:
+    {
+      "Monday": {
+        "Breakfast": "Omelette",
+        "Lunch": "Grilled Cheese",
+        ...
+      },
+      ...
+    }
   expected_output: >
-    A weekly plan mapping each dish to a specific day and meal time (breakfast/lunch/dinner).
+    A weekly meal plan as a JSON object mapping each day to meals.
   agent: meal_planner
 
 identify_grocery_gaps_task:
   description: >
-    Compare the user's grocery history and current fridge contents with the weekly meal plan to generate a shopping list of missing items.
+    Compare the user's fridge contents with the weekly meal plan and suggested dishes to generate a complete structured response.
+
+    Your output must include:
+    - `dishes`: the final selected dishes list (same structure as dish generation)
+    - `meal_plan`: the final weekly plan (same structure as meal planner)
+    - `grocery_list`: a JSON object where keys are categories like "Produce", "Dairy", and values are arrays of items to buy
+
+    Return only a valid JSON object like:
+    {
+      "dishes": [...],
+      "meal_plan": {...},
+      "grocery_list": {
+        "Produce": ["Tomatoes", "Bananas"],
+        "Dairy": ["Milk"],
+        "Meat": ["Chicken"]
+      }
+    }
+
+    ⚠️ Do NOT include extra explanation, markdown, or text. Only return a single valid JSON object.
   expected_output: >
-    A smart grocery list grouped by category (e.g., Produce, Dairy) showing what needs to be bought for the week.
+    A JSON object with three keys: "dishes", "meal_plan", and "grocery_list".
   agent: grocery_gap_identifier
+  depends_on: [generate_dishes_task, plan_meals_task]
+  input:
+    dishes: generate_dishes_task.output
+    meal_plan: plan_meals_task.output
