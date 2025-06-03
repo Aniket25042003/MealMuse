@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import Layout from '../components/layout/Layout';
 import PreferencesForm from '../components/settings/PreferencesForm';
 import { mockUser } from '../lib/mockData';
 import { User } from '../types';
 
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User>(mockUser);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
@@ -18,6 +22,15 @@ const SettingsPage: React.FC = () => {
     setTimeout(() => {
       setShowSuccessMessage(false);
     }, 3000);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -96,7 +109,10 @@ const SettingsPage: React.FC = () => {
                   <button className="text-left w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
                     Notification Settings
                   </button>
-                  <button className="text-left w-full px-3 py-2 text-sm text-coral hover:bg-coral/10 rounded-md transition-colors">
+                  <button 
+                    onClick={handleSignOut}
+                    className="text-left w-full px-3 py-2 text-sm text-coral hover:bg-coral/10 rounded-md transition-colors"
+                  >
                     Sign Out
                   </button>
                 </div>

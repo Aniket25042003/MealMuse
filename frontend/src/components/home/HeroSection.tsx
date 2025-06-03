@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import { ArrowRight } from 'lucide-react';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../../firebase';
+import { getUserPreferences } from '../../lib/db';
 
 const HeroSection: React.FC = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   const container = {
     hidden: { opacity: 0 },
@@ -22,8 +26,25 @@ const HeroSection: React.FC = () => {
     show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
-  const handleGetStarted = () => {
-    navigate('/onboarding');
+  const handleGetStarted = async () => {
+    try {
+      setIsLoading(true);
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user has preferences set up
+      const preferences = await getUserPreferences(result.user.uid);
+      
+      // If no preferences exist, redirect to onboarding
+      if (!preferences) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Sign-in failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,6 +77,7 @@ const HeroSection: React.FC = () => {
                 size="lg"
                 icon={<ArrowRight size={20} />}
                 className="mr-4"
+                loading={isLoading}
               >
                 Get Started
               </Button>

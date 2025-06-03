@@ -13,7 +13,7 @@ import GroceryPage from './pages/GroceryPage';
 import SettingsPage from './pages/SettingsPage';
 
 // Auth
-import { useAuth } from './context/AuthContext';
+import { useAuth, AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/routing/PrivateRoute';
 
 function AppRoutes() {
@@ -38,9 +38,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AppRoutes />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 }
 

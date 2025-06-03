@@ -1,14 +1,47 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Settings, Search } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Home, UtensilsCrossed, CalendarDays, ShoppingBag, Settings, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../../firebase';
+import { useAuth } from '../../context/AuthContext';
+import { getUserPreferences } from '../../lib/db';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+  };
+
+  const handleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user has preferences set up
+      const preferences = await getUserPreferences(result.user.uid);
+      
+      // If no preferences exist, redirect to onboarding
+      if (!preferences) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Sign-in failed:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Sign-out failed:', error);
+    }
   };
 
   const navItems = [
@@ -51,36 +84,47 @@ const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                  isActive(item.path)
-                    ? 'text-green-primary'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-
           <div className="flex items-center space-x-4">
-            <button
-              type="button"
-              className="hidden md:flex bg-white p-2 rounded-full text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-primary/50"
-            >
-              <Search size={20} />
-            </button>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    isActive(item.path)
+                      ? 'text-green-primary'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="mr-2">{item.icon}</span>
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="hidden md:flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200"
+              >
+                <LogOut size={20} className="mr-2" />
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="hidden md:flex items-center px-3 py-2 rounded-md text-sm font-medium text-green-primary hover:bg-green-primary/10 transition-colors duration-200"
+              >
+                Sign In
+              </button>
+            )}
 
             <button
               type="button"
               className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-primary/50"
               onClick={toggleMenu}
+              aria-label="Toggle menu"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -114,6 +158,28 @@ const Navbar: React.FC = () => {
                   {item.name}
                 </Link>
               ))}
+              {user ? (
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center w-full px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <LogOut size={22} className="mr-3" />
+                  Sign Out
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleSignIn();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center w-full px-3 py-2 rounded-md text-base font-medium text-green-primary hover:bg-green-primary/10"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
           </motion.div>
         )}

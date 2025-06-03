@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Plus } from 'lucide-react';
@@ -8,14 +8,56 @@ import Checkbox from '../components/ui/Checkbox';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tag from '../components/ui/Tag';
+import { useAuth } from '../contexts/AuthContext';
+import { updateUserPreferences, getUserPreferences, UserPreferences } from '../lib/db';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [diet, setDiet] = useState<DietaryPreference>('Omnivore');
   const [allergies, setAllergies] = useState<Allergy[]>([]);
   const [dislikedIngredients, setDislikedIngredients] = useState<string[]>([]);
   const [newDisliked, setNewDisliked] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isCheckingPreferences, setIsCheckingPreferences] = useState(true);
+
+  // Check if user has preferences already
+  useEffect(() => {
+    const checkPreferences = async () => {
+      if (!user) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        setIsCheckingPreferences(true);
+        const existingPreferences = await getUserPreferences(user.uid);
+        console.log('Existing preferences:', existingPreferences); // Debug log
+        
+        // Check if preferences exist and have required fields
+        const hasValidPreferences = existingPreferences && 
+          existingPreferences.dietaryRestrictions?.length > 0 &&
+          existingPreferences.cookingSkillLevel &&
+          existingPreferences.cookingTimePreference;
+
+        if (hasValidPreferences) {
+          console.log('Valid preferences found, redirecting to dashboard'); // Debug log
+          navigate('/dashboard');
+        } else {
+          console.log('No valid preferences found, showing onboarding form'); // Debug log
+          setIsCheckingPreferences(false);
+        }
+      } catch (error) {
+        console.error('Error checking preferences:', error);
+        setError('Failed to check existing preferences');
+        setIsCheckingPreferences(false);
+      }
+    };
+
+    checkPreferences();
+  }, [user, navigate]);
 
   const dietOptions = [
     { value: 'Omnivore', label: 'Omnivore' },
@@ -59,17 +101,52 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      // Save preferences and navigate to dashboard
-      localStorage.setItem('userPreferences', JSON.stringify({
-        diet,
-        allergies,
-        dislikedIngredients,
-      }));
-      navigate('/dashboard');
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        if (!user) {
+          setError('Please sign in to continue');
+          return;
+        }
+
+        // Convert the form data to match UserPreferences interface
+        const preferences: UserPreferences = {
+          dietaryRestrictions: [diet],
+          allergies: allergies,
+          cookingSkillLevel: 'intermediate',
+          preferredCuisines: [],
+          mealPlanningDays: [],
+          cookingTimePreference: '30-45',
+          servingsPerMeal: 2,
+          groceryShoppingFrequency: 'weekly',
+          kitchenEquipment: [],
+          spicePreference: 'moderate',
+          mealPlanningFrequency: 'weekly',
+          dislikedIngredients: dislikedIngredients
+        };
+
+        // Save preferences to Firestore
+        await updateUserPreferences(user.uid, preferences);
+        
+        // Verify that preferences were saved
+        const savedPreferences = await getUserPreferences(user.uid);
+        if (!savedPreferences) {
+          throw new Error('Failed to verify saved preferences');
+        }
+
+        // If we get here, preferences were saved successfully
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Error saving preferences:', error);
+        setError('Failed to save preferences. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -199,6 +276,7 @@ const OnboardingPage: React.FC = () => {
           <button
             onClick={prevStep}
             className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-primary/50"
+            aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
@@ -211,37 +289,51 @@ const OnboardingPage: React.FC = () => {
       
       <main className="flex-grow flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-            {renderStep()}
-            
-            <div className="mt-8 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex">
-                  {[1, 2, 3].map((s) => (
-                    <div 
-                      key={s}
-                      className={`
-                        h-2 w-10 rounded-full mr-2
-                        ${s === step ? 'bg-green-primary' : s < step ? 'bg-green-primary/50' : 'bg-gray-200'}
-                      `}
-                    ></div>
-                  ))}
-                </div>
-                <div className="text-sm text-gray-500">
-                  Step {step} of 3
-                </div>
-              </div>
-              
-              <Button
-                onClick={nextStep}
-                variant="primary"
-                fullWidth
-                icon={step < 3 ? <ArrowRight size={18} /> : <Check size={18} />}
-              >
-                {step < 3 ? 'Continue' : 'Save and Continue'}
-              </Button>
+          {isCheckingPreferences ? (
+            <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-primary mx-auto"></div>
+              <p className="mt-4 text-gray-600">Checking your preferences...</p>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-800 rounded-lg">
+                  {error}
+                </div>
+              )}
+              
+              {renderStep()}
+              
+              <div className="mt-8 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex">
+                    {[1, 2, 3].map((s) => (
+                      <div 
+                        key={s}
+                        className={`
+                          h-2 w-10 rounded-full mr-2
+                          ${s === step ? 'bg-green-primary' : s < step ? 'bg-green-primary/50' : 'bg-gray-200'}
+                        `}
+                      ></div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Step {step} of 3
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={nextStep}
+                  variant="primary"
+                  fullWidth
+                  icon={step < 3 ? <ArrowRight size={18} /> : <Check size={18} />}
+                  isLoading={isLoading}
+                >
+                  {step < 3 ? 'Continue' : 'Save and Continue'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
       

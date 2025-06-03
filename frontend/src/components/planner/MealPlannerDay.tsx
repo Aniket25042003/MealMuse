@@ -1,12 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { Recipe } from '../../types';
+import { Recipe } from '../../lib/db';
 import Button from '../ui/Button';
 
 interface MealPlannerDayProps {
   day: string;
-  meals: { type: string; recipe: Recipe }[];
+  meals: {
+    day: string;
+    type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    recipeId: string;
+    recipe: Recipe;
+  }[];
   onAddMeal: (day: string) => void;
   onRemoveMeal: (day: string, mealType: string) => void;
   onEditMeal: (day: string, mealType: string) => void;
@@ -60,7 +65,7 @@ const MealPlannerDay: React.FC<MealPlannerDayProps> = ({
                   <span className="text-xs font-medium text-coral">{meal.type}</span>
                   <h4 className="text-sm font-medium text-gray-800 truncate">{meal.recipe.name}</h4>
                   <div className="flex items-center text-xs text-gray-500">
-                    <span>{meal.recipe.totalTime} min</span>
+                    <span>{meal.recipe.prepTime + meal.recipe.cookTime} min</span>
                     <span className="mx-1">•</span>
                     <span>{meal.recipe.difficulty}</span>
                   </div>
@@ -70,12 +75,14 @@ const MealPlannerDay: React.FC<MealPlannerDayProps> = ({
                   <button 
                     onClick={() => onEditMeal(day, meal.type)}
                     className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+                    title="Edit meal"
                   >
                     <Edit size={16} />
                   </button>
                   <button 
                     onClick={() => onRemoveMeal(day, meal.type)}
                     className="p-1.5 text-gray-500 hover:text-coral hover:bg-gray-100 rounded-full"
+                    title="Remove meal"
                   >
                     <Trash2 size={16} />
                   </button>
